@@ -1,3 +1,3 @@
 # PizzOS
-# PizzOS
-# PizzOS
+
+**My simple OS project :D!**
