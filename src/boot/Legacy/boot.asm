@@ -51,7 +51,7 @@ run:
   in al, 0x92
   or al, 2
   out 0x92, al
-  jmp $
+  ;jmp $
 
 
 print:
@@ -71,12 +71,7 @@ print_char:
   int 0x10
   ret
 
-.panic:
- mov si, boot_panic
- call print
-
 msg: db 'Preparing for protected mode', 0
-boot_panic: db '[FATAL]: Something is wrong', 0 ;NEED to print a better msg
 stagetwo_confirm: db 'Moving to protected mode', 0
 ;
 ;GDT, Super duper simple.
@@ -90,16 +85,17 @@ gdt_null:
 gdt_code:
   dw 0xFFFF       ;Limit
   dw 0x0000       ;Base
-  dw 0x00         ;Another one
+  db 0x00         ;Another one
   db 10011010b    ;Acces byte i think...
   db 11001111b    ;Flags and the limit
   db 0x00         ;Base
   ; for acces byte, see https://wiki.osdev.org/Global_Descriptor_Table#Segment_Descriptor
 gdt_data:
+
   dw 0xFFFF
   dw 0x0000
-  dw 0x00
-  db 10011010b
+  db 0x00
+  db 10010010b
   db 11001111b
   db 0x00
 
@@ -107,32 +103,33 @@ gdt_end:
 ;GDT descriptor for lgdt
 ;
 gdt_descriptor:
+  dd gdt_start + 0x7c00
   dw gdt_end - gdt_start - 1 ;Limit og GDT minus 1
   dd gdt_start ;linear addr
 
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 
+switch_to_pm:
+  cli
+  lgdt [gdt_descriptor]
+  mov eax, cr0
+  or eax, 1
+  mov cr0, eax
+  jmp CODE_SEG:protected_mode_start
 
-lgdt [gdt_descriptor]
-mov eax, cr0
-or eax, 1
-mov cr0, eax
 
-jmp CODE_SEG:protected_mode_start ;yippee
-cli
+BITS 32
+  protected_mode_start:
+      mov ax, DATA_SEG
+      mov ds, ax
+      mov es, ax
+      mov fs, ax
+      mov gs, ax
+      mov ss, ax
+      mov esp, 0x80000   ;somewhere safe
 
-[bits 32]
-protected_mode_start:
-    mov ax, DATA_SEG
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    mov esp, 0x90000   ; set up a stack somewhere safe
-
-    mov si, stagetwo_confirm
-    call print
-times 510- ($ - $$) db 0 ;jmp to the but to be signed
+      mov si, stagetwo_confirm
+      call print
+times 510- ($ - $$) db 0 ;jmp to the bit to be signed
 dw 0xAA55
