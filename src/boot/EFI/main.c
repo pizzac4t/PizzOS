@@ -1,11 +1,6 @@
-#include "headers/efi.h"
-#include "headers/efilib.h"
+#include "headers/uefi/uefi.h"
 
-EFI_STATUS
-EFIAPI
-
-efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-  InitializeLib(ImageHandle, SystemTable);
-  Print(L"Hello, world!\n");
-  return EFI_SUCCESS;
+int main (int argc, char **argv) {
+    printf("Hi mum\n");
+    return 0;
 }

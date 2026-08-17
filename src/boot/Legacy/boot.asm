@@ -31,9 +31,65 @@ _start:
   ebr_volume_label:          db 'PIZZOS     ' ;11 bytes, see what I did there?
   ebr_system_id:             db 'FAT12   '
 
-
+MMAP_USED    equ 0
+MMAP_FREE    equ 1
+MMAP_ACPI    equ 3
+MMAP_RECLAIM equ 4
 start:
   jmp 0x7c0:run
+
+mmap_buffer equ 0xA000
+mmap:
+  xor ebx, ebx
+  mov di, mmap_buffer
+.mmap_next:
+  xor eax, eax
+  mov edx, 0x534D4150
+  xor ecx, ecx
+  mov ax, 0E820h
+  mov cl, 20
+  int 15h
+  cmp eax, 0x534D4150
+  jne .mmap_no
+
+
+  cmp al, 1
+  je .free
+  cmp al, 3
+  je .reclaimable
+  cmp al, 4
+  je .acpi
+  jmp .mmap_compare
+
+
+.free:
+  mov al, MMAP_FREE
+  jmp .mmap_compare
+.reclaimable:
+  mov al, MMAP_RECLAIM
+  jmp .mmap_compare
+.acpi:
+  mov al, MMAP_ACPI
+  jmp .mmap_compare
+.mmap_compare:
+  mov di, al
+  add mmap_buffer, 16
+  add di, 16
+  cmp di, mmap_buffer + 4096
+  jae .mmap_page_limit
+  or ebx, ebx
+  jz .mmap_done
+  jnz .mmap_next
+
+.mmap_page_limit:
+  cmp mmap_buffer, 96
+  ja mmap_done
+
+.mmap_no:
+  jmp mmap ;PLEASE, I NEED to remember this bad practice to be solved
+
+.mmap_done:
+
 
 run:
   cli ;Clears interrupts
